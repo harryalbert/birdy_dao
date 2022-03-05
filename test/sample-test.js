@@ -22,9 +22,7 @@ describe("NFTMarket", async function () {
     await birdy.connect(addresses[1]).buyToken({ value: tokenPrice });
 
     // get balance of purchaser
-    let balance = await birdy.connect(addresses[1]).getUserTokenCount();
+    let balance = await birdy.connect(addresses[1]).getUserBalance();
     expect(balance).to.equal(2);
-
-    
   });
 });

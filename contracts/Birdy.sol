@@ -30,7 +30,7 @@ contract Birdy is ERC721, ReentrancyGuard {
     /*
      * returns token count of msg.sender
      */
-    function getUserTokenCount() public view returns (uint256) {
+    function getUserBalance() public view returns (uint256) {
         return balanceOf(msg.sender);
     }
 
