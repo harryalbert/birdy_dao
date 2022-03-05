@@ -9,6 +9,7 @@ import Birdy from "../artifacts/contracts/Birdy.sol/Birdy.json";
 export default function Home() {
   const [balance, setBalance] = useState(0);
   const [loadingState, setLoadingState] = useState(true);
+
   useEffect(() => {
     loadBalance();
   }, []);
@@ -24,10 +25,26 @@ export default function Home() {
     setBalance(balance.toString());
   }
 
+  async function buyToken() {
+    const web3Modal = new Web3Modal();
+    const connection = await web3Modal.connect();
+    const provider = new ethers.providers.Web3Provider(connection);
+    const signer = provider.getSigner();
+
+    const birdyContract = new ethers.Contract(birdyAddress, Birdy.abi, signer);
+
+    let price = await birdyContract.getTokenPrice();
+    console.log(price);
+
+    await birdyContract.buyToken({ value: price });
+    console.log("bought token");
+    loadBalance();
+  }
+
   return (
-    <div className="flex">
+    <div className="flex-1">
       <h1 className="text-xl">{balance}</h1>
-      <button></button>
+      <button onClick={() => buyToken()}>Buy Token</button>
     </div>
   )
 }
