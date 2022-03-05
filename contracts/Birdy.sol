@@ -26,13 +26,30 @@ contract Birdy is ERC721, ReentrancyGuard {
         tokenPrice = 10 ether;
     }
 
+    ///////////////// VIEW METHODS /////////////////
     /*
-    * mints and sells a token to a buyer
-    * pre: buyer sends tokenPrice
-    *      tokensToMint > 0
-    * post: mints new token and transfers ownersip to msg.sender
-    */
-    function sellToken() public payable nonReentrant {
+     * returns token count of msg.sender
+     */
+    function getUserTokenCount() public view returns (uint256) {
+        return balanceOf(msg.sender);
+    }
+
+    /*
+     *  returns current price of a token
+     */
+    function getTokenPrice() public view returns (uint256) {
+        return tokenPrice;
+    }
+
+    ///////////////// purchase methods /////////////////
+
+    /*
+     * mints and sells a token to a buyer
+     * pre: buyer sends tokenPrice
+     *      tokensToMint > 0
+     * post: mints new token and transfers ownersip to msg.sender
+     */
+    function buyToken() public payable nonReentrant {
         require(tokensToMint > 0, "There are no more tokens to mint right now");
         require(
             msg.value == tokenPrice,
@@ -45,12 +62,5 @@ contract Birdy is ERC721, ReentrancyGuard {
         // mint token for owner
         _safeMint(msg.sender, tokenCount.current());
         tokenCount.increment();
-    }
-
-    /*
-    * returns token count of msg.sender
-    */
-    function userTokenCount() public view returns(uint256) {
-        return balanceOf(msg.sender);
     }
 }
