@@ -1,50 +1,35 @@
-import { ethers } from 'ethers';
-import { useEffect, useState } from 'react';
-import axios from 'axios';
-import Web3Modal from 'web3modal';
-
-import { birdyAddress } from '../config';
-import Birdy from "../artifacts/contracts/Birdy.sol/Birdy.json";
+import Link from "next/link";
 
 export default function Home() {
-  const [balance, setBalance] = useState(0);
-  const [loadingState, setLoadingState] = useState(true);
-
-  useEffect(() => {
-    loadBalance();
-  }, []);
-
-  async function loadBalance() {
-    const web3Modal = new Web3Modal();
-    const connection = await web3Modal.connect();
-    const provider = new ethers.providers.Web3Provider(connection);
-    const signer = provider.getSigner();
-
-    const birdyContract = new ethers.Contract(birdyAddress, Birdy.abi, signer);
-    const balance = await birdyContract.getUserBalance();
-    setBalance(balance.toString());
-  }
-
-  async function buyToken() {
-    const web3Modal = new Web3Modal();
-    const connection = await web3Modal.connect();
-    const provider = new ethers.providers.Web3Provider(connection);
-    const signer = provider.getSigner();
-
-    const birdyContract = new ethers.Contract(birdyAddress, Birdy.abi, signer);
-
-    let price = await birdyContract.getTokenPrice();
-    console.log(price);
-
-    await birdyContract.buyToken({ value: price });
-    console.log("bought token");
-    loadBalance();
-  }
 
   return (
-    <div className="flex-1">
-      <h1 className="text-xl">{balance}</h1>
-      <button onClick={() => buyToken()}>Buy Token</button>
+    <div>
+      <nav className="border-b p-6">
+        <p className="text-4xl font-bold">Metaverse Marketplace</p>
+
+        <div className="flex mt-4">
+          <Link href="/">
+            <a className="mr-4 text-pink-500">
+              Home
+            </a>
+          </Link>
+          <Link href="/create-item">
+            <a className="mr-6 text-pink-500">
+              Sell Digital Asset
+            </a>
+          </Link>
+          <Link href="/my-assets">
+            <a className="mr-6 text-pink-500">
+              My Digital Assets
+            </a>
+          </Link>
+          <Link href="/creator-dashboard">
+            <a className="mr-6 text-pink-500">
+              Creator Dashboard
+            </a>
+          </Link>
+        </div>
+      </nav>
     </div>
   )
 }
