@@ -14,7 +14,7 @@ contract Birdy is ERC721, ReentrancyGuard {
     uint256 tokenPrice;
     address payable owner;
 
-    mapping(address => uint256) private memberBalances; // owners of any BIRD
+    mapping(address => uint256[]) private memberBalances; // owners of any BIRD
     mapping(address => uint256[]) private stakers; // BIRD stakers
 
     // only owner can call method
@@ -26,7 +26,7 @@ contract Birdy is ERC721, ReentrancyGuard {
     constructor() ERC721("Birdy", "BRDY") {
         owner = payable(msg.sender);
 
-        tokensToMint = 2;
+        tokensToMint = 10;
         tokenPrice = 10 ether;
     }
 
@@ -39,7 +39,28 @@ contract Birdy is ERC721, ReentrancyGuard {
     }
 
     /*
-     *  returns current price of a token
+     * returns staked token count of msg.sender
+     */
+    function getUserStakedBalance() public view returns (uint256) {
+        return stakers[msg.sender].length;
+    }
+
+    /*
+     * returns list of all tokens owned by msg.sender
+     */
+    function getUserTokens() public view returns (uint256[] memory) {
+        return memberBalances[msg.sender];
+    }
+
+    /*
+     * get user's staked tokens
+     */
+    function getUserStakedTokens() public view returns (uint256[] memory) {
+        return stakers[msg.sender];
+    }
+
+    /*
+     * returns current price of a token
      */
     function getTokenPrice() public view returns (uint256) {
         return tokenPrice;
@@ -53,9 +74,9 @@ contract Birdy is ERC721, ReentrancyGuard {
      *      tokensToMint > 0
      * post: mints new token and transfers ownersip to msg.sender
      */
-    function buyToken(uint256 numTokens) public payable nonReentrant {
+    function buyTokens(uint256 numTokens) public payable nonReentrant {
         require(
-            tokensToMint > numTokens,
+            (tokensToMint - numTokens) >= 0,
             "we can't mint that amount of tokens right now"
         );
         require(
@@ -66,24 +87,67 @@ contract Birdy is ERC721, ReentrancyGuard {
         // will probably change later, but for now just giving all the money to the contract owner
         owner.transfer(msg.value);
 
-        // mint token for owner
-        uint256 tokenId = tokenCount.current();
-        _safeMint(msg.sender, tokenId);
-        memberBalances[msg.sender] = memberBalances[msg.sender] + 1;
+        // create and transfer tokens to owner
+        for (uint256 i = 0; i < numTokens; i++) {
+            // mint token for owner
+            uint256 tokenId = tokenCount.current();
+            _safeMint(msg.sender, tokenId);
+            memberBalances[msg.sender].push(tokenId);
 
-        tokenCount.increment();
+            tokenCount.increment();
+        }
     }
 
     /*
      * Stake token in contract
      */
-    function stakeToken(uint256 numStaking) public nonReentrant {
-        require(numStaking > 0, "You must stake at least 1 token");
+    function stakeTokens(uint256 n) public nonReentrant {
+        require(n > 0, "You must stake at least 1 token");
 
         uint256 numOwned = balanceOf(msg.sender);
+        require(numOwned >= n, "You can't stake more tokens than you own");
+
+        // convert n tokens to staking pool
+        uint256[] memory owned = memberBalances[msg.sender];
+        uint256 numTokens = owned.length;
+        for (uint256 i = 0; i < n; i++) {
+            uint256 tokenId = owned[i];
+
+            _burn(tokenId); // remove token from account
+            stakers[msg.sender].push(tokenId); // add token to 'staking pool'
+        }
+
+        // create new memberBalance w/o staked tokens
+        delete memberBalances[msg.sender];
+        for (uint256 i = n; i < numTokens; i++) {
+            memberBalances[msg.sender].push(owned[i]);
+        }
+    }
+
+    /*
+     * unstake tokens from contract
+     */
+    function unstakeTokens(uint256 n) public nonReentrant {
+        require(n > 0, "You must unstake at least 1 token");
         require(
-            numOwned >= numStaking,
-            "You can't stake more tokens than you own"
+            n >= stakers[msg.sender].length,
+            "You can't unstake more tokens than you have staked"
         );
+
+        // remint n tokens from staking pool
+        uint256[] memory staked = stakers[msg.sender];
+        uint256 numTokens = staked.length;
+        for (uint256 i = 0; i < n; i++) {
+            uint256 tokenId = staked[i];
+
+            _safeMint(msg.sender, tokenId); // remove token from account
+            memberBalances[msg.sender].push(tokenId); // add token to 'staking pool'
+        }
+
+        // create new memberBalance w/o staked tokens
+        delete stakers[msg.sender];
+        for (uint256 i = n; i < numTokens; i++) {
+            stakers[msg.sender].push(staked[i]);
+        }
     }
 }
