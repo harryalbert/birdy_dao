@@ -1,35 +1,19 @@
-import Link from "next/link";
+import Image from "next/image";
 
 export default function Home() {
 
   return (
-    <div>
-      <nav className="border-b p-6">
-        <p className="text-4xl font-bold">Metaverse Marketplace</p>
-
-        <div className="flex mt-4">
-          <Link href="/">
-            <a className="mr-4 text-pink-500">
-              Home
-            </a>
-          </Link>
-          <Link href="/create-item">
-            <a className="mr-6 text-pink-500">
-              Sell Digital Asset
-            </a>
-          </Link>
-          <Link href="/my-assets">
-            <a className="mr-6 text-pink-500">
-              My Digital Assets
-            </a>
-          </Link>
-          <Link href="/creator-dashboard">
-            <a className="mr-6 text-pink-500">
-              Creator Dashboard
-            </a>
-          </Link>
+    <div className="bg-light">
+      <div className="flex justify-between items-center drop-shadow bg-white p-2">
+        <div className="flex flex-row items-center">
+          <Image src="/images/logo.svg" height={50} width={77} alt="birdy logo" />
+          <h1 className="title pl-3"> BirdyDAO </h1>
         </div>
-      </nav>
-    </div>
-  )
+        <div>
+          <button className="rounded-md bg-main py-0 px-4 h-min">
+            <text className="text-white mediumText">Join</text>
+          </button>
+        </div>
+      </div>
+    </div>)
 }

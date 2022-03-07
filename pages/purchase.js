@@ -34,7 +34,7 @@ export default function Home() {
     let price = await birdyContract.getTokenPrice();
     console.log(price);
 
-    await birdyContract.buyToken({ value: price });
+    await birdyContract.buyToken(1, { value: price });
     console.log("bought token");
     loadBalance();
   }
