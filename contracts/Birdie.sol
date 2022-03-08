@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "hardhat/console.sol";
 
-contract Birdy is ERC721, ReentrancyGuard {
+contract Birdie is ERC721, ReentrancyGuard {
     using Counters for Counters.Counter;
     Counters.Counter tokenCount;
 
@@ -14,15 +14,18 @@ contract Birdy is ERC721, ReentrancyGuard {
     uint256 tokenPrice;
     address payable owner;
 
+    //staking info
+    mapping(address => uint256) private stakedBalance; // balance of each staker
+    mapping(uint256 => address) private stakedOwner; // owner of each staked coin
+
+    mapping(address => uint256[]) private stakers; // BIRD stakers
+    Seller[] sellers;
+
     struct Seller {
         address adr; // address of buyer/seler
         uint256 cost; // cost of token
         uint256 amount; // amount buying/selling
     }
-
-    mapping(address => uint256[]) private stakers; // BIRD stakers
-
-    Seller[] sellers;
 
     // only owner can call method
     modifier onlyOwner() {
@@ -30,7 +33,7 @@ contract Birdy is ERC721, ReentrancyGuard {
         _;
     }
 
-    constructor() ERC721("Birdy", "BRDY") {
+    constructor() ERC721("Birdie", "BRD") {
         owner = payable(msg.sender);
 
         tokensToMint = 10;
@@ -49,7 +52,7 @@ contract Birdy is ERC721, ReentrancyGuard {
      * returns staked token count of msg.sender
      */
     function getUserStakedBalance() public view returns (uint256) {
-        return stakers[msg.sender].length;
+        return stakedBalance[msg.sender];
     }
 
     /*
@@ -75,7 +78,18 @@ contract Birdy is ERC721, ReentrancyGuard {
      * get user's staked tokens
      */
     function getUserStakedTokens() public view returns (uint256[] memory) {
-        return stakers[msg.sender];
+        uint256 balance = getUserStakedBalance();
+        uint256[] memory owned = new uint256[](balance);
+
+        uint256 cIndex = 0;
+        for (uint256 i = 0; i < tokenCount.current(); i++) {
+            if (stakedOwner[i] == msg.sender) {
+                owned[cIndex] = i;
+                cIndex++;
+            }
+        }
+
+        return owned;
     }
 
     /*
@@ -119,28 +133,26 @@ contract Birdy is ERC721, ReentrancyGuard {
     /*
      * put a token up for sale
      */
-    function sellTokens(uint256 n, uint256 price) public nonReentrant {
-        require(n > 0, "You must sell at least 1 token");
-        require(balanceOf(msg.sender) >= n);
-    }
+    // function sellTokens(uint256 n, uint256 price) public nonReentrant {
+    //     require(n > 0, "You must sell at least 1 token");
+    //     require(balanceOf(msg.sender) >= n);
+    // }
 
     /*
      * Stake token in contract
      */
     function stakeTokens(uint256 n) public nonReentrant {
         require(n > 0, "You must stake at least 1 token");
-
-        uint256 numOwned = balanceOf(msg.sender);
-        require(numOwned >= n, "You can't stake more tokens than you own");
+        require(balanceOf(msg.sender) >= n, "You can't stake more tokens than you own");
 
         // convert n tokens to staking pool
         uint256[] memory owned = getUserTokens();
-        uint256 numTokens = owned.length;
         for (uint256 i = 0; i < n; i++) {
             uint256 tokenId = owned[i];
 
             _burn(tokenId); // remove token from account
-            stakers[msg.sender].push(tokenId); // add token to 'staking pool'
+            stakedBalance[msg.sender]++;
+            stakedOwner[tokenId] = msg.sender;
         }
     }
 
@@ -150,23 +162,22 @@ contract Birdy is ERC721, ReentrancyGuard {
     function unstakeTokens(uint256 n) public nonReentrant {
         require(n > 0, "You must unstake at least 1 token");
         require(
-            n >= stakers[msg.sender].length,
+            n <= stakedBalance[msg.sender],
             "You can't unstake more tokens than you have staked"
         );
 
         // remint n tokens from staking pool
-        uint256[] memory staked = stakers[msg.sender];
-        uint256 numTokens = staked.length;
-        for (uint256 i = 0; i < n; i++) {
-            uint256 tokenId = staked[i];
+        uint256 minted = 0;
+        for (uint256 i = 0; i < tokenCount.current(); i++) {
+            if (stakedOwner[i] == msg.sender) {
+                _safeMint(msg.sender, i);
+                stakedOwner[i] = address(0);
+                minted++;
 
-            _safeMint(msg.sender, tokenId); // remove token from account
+                if (minted >= n) break;
+            }
         }
 
-        // create new memberBalance w/o staked tokens
-        delete stakers[msg.sender];
-        for (uint256 i = n; i < numTokens; i++) {
-            stakers[msg.sender].push(staked[i]);
-        }
+        stakedBalance[msg.sender] -= minted;
     }
 }
