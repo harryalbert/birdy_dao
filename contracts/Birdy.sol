@@ -20,7 +20,6 @@ contract Birdy is ERC721, ReentrancyGuard {
         uint256 amount; // amount buying/selling
     }
 
-    mapping(address => uint256[]) private memberBalances; // owners of any BIRD
     mapping(address => uint256[]) private stakers; // BIRD stakers
 
     Seller[] sellers;
@@ -57,7 +56,19 @@ contract Birdy is ERC721, ReentrancyGuard {
      * returns list of all tokens owned by msg.sender
      */
     function getUserTokens() public view returns (uint256[] memory) {
-        return memberBalances[msg.sender];
+        uint256 balance = balanceOf(msg.sender);
+        uint256[] memory owned = new uint256[](balance);
+
+        uint256 cIndex = 0;
+
+        for (uint256 i = 0; i < tokenCount.current(); i++) {
+            if (_exists(i) && ownerOf(i) == msg.sender) {
+                owned[cIndex] = i;
+                cIndex++;
+            }
+        }
+
+        return owned;
     }
 
     /*
@@ -100,7 +111,6 @@ contract Birdy is ERC721, ReentrancyGuard {
             // mint token for owner
             uint256 tokenId = tokenCount.current();
             _safeMint(msg.sender, tokenId);
-            memberBalances[msg.sender].push(tokenId);
 
             tokenCount.increment();
         }
@@ -112,8 +122,6 @@ contract Birdy is ERC721, ReentrancyGuard {
     function sellTokens(uint256 n, uint256 price) public nonReentrant {
         require(n > 0, "You must sell at least 1 token");
         require(balanceOf(msg.sender) >= n);
-
-        
     }
 
     /*
@@ -126,19 +134,13 @@ contract Birdy is ERC721, ReentrancyGuard {
         require(numOwned >= n, "You can't stake more tokens than you own");
 
         // convert n tokens to staking pool
-        uint256[] memory owned = memberBalances[msg.sender];
+        uint256[] memory owned = getUserTokens();
         uint256 numTokens = owned.length;
         for (uint256 i = 0; i < n; i++) {
             uint256 tokenId = owned[i];
 
             _burn(tokenId); // remove token from account
             stakers[msg.sender].push(tokenId); // add token to 'staking pool'
-        }
-
-        // create new memberBalance w/o staked tokens
-        delete memberBalances[msg.sender];
-        for (uint256 i = n; i < numTokens; i++) {
-            memberBalances[msg.sender].push(owned[i]);
         }
     }
 
@@ -159,7 +161,6 @@ contract Birdy is ERC721, ReentrancyGuard {
             uint256 tokenId = staked[i];
 
             _safeMint(msg.sender, tokenId); // remove token from account
-            memberBalances[msg.sender].push(tokenId); // add token to 'staking pool'
         }
 
         // create new memberBalance w/o staked tokens
