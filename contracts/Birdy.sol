@@ -14,8 +14,16 @@ contract Birdy is ERC721, ReentrancyGuard {
     uint256 tokenPrice;
     address payable owner;
 
+    struct Seller {
+        address adr; // address of buyer/seler
+        uint256 cost; // cost of token
+        uint256 amount; // amount buying/selling
+    }
+
     mapping(address => uint256[]) private memberBalances; // owners of any BIRD
     mapping(address => uint256[]) private stakers; // BIRD stakers
+
+    Seller[] sellers;
 
     // only owner can call method
     modifier onlyOwner() {
@@ -96,6 +104,16 @@ contract Birdy is ERC721, ReentrancyGuard {
 
             tokenCount.increment();
         }
+    }
+
+    /*
+     * put a token up for sale
+     */
+    function sellTokens(uint256 n, uint256 price) public nonReentrant {
+        require(n > 0, "You must sell at least 1 token");
+        require(balanceOf(msg.sender) >= n);
+
+        
     }
 
     /*
