@@ -20,7 +20,7 @@ contract Birdie is ERC721 {
     mapping(address => uint256[]) private stakers; // BIRD stakers
 
     mapping(uint256 => ForSale) private forSale; // token id => price, seller
-    mapping(address => uint256) private numSelling; // address => how many tokens are currently being sold
+    mapping(address => uint256) private sellers; // address => how many tokens are currently being sold
 
     struct ForSale {
         uint256 price;
@@ -102,15 +102,15 @@ contract Birdie is ERC721 {
     /*
      * get tokens that user currenty has for sale
      */
-    function getUserSelling() public view returns (uint256[] memory) {
-        uint256[] memory tokens = new uint256[](numSelling[msg.sender]);
+    function getUserSelling() public view returns (ForSale[] memory) {
+        ForSale[] memory tokens = new ForSale[](sellers[msg.sender]);
         uint256 numFound = 0;
         for (uint256 i = 0; i < tokenCount.current(); i++) {
             if (forSale[i].seller == msg.sender) {
-                tokens[numFound] = i;
+                tokens[numFound] = forSale[i];
                 numFound++;
 
-                if (numFound >= numSelling[msg.sender]) return tokens;
+                if (numFound >= sellers[msg.sender]) return tokens;
             }
         }
 
@@ -152,7 +152,7 @@ contract Birdie is ERC721 {
     /*
      * put a token up for sale
      */
-    function createTokenSale(uint256 n, uint256 price) public {
+    function sellTokens(uint256 n, uint256 price) public {
         require(n > 0, "You must sell at least 1 token");
         require(
             balanceOf(msg.sender) >= n,
@@ -162,8 +162,9 @@ contract Birdie is ERC721 {
 
         uint256[] memory owned = getUserTokens();
         for (uint256 i = 0; i < n; i++) {
-            forSale[owned[i]] = price;
-            sellers[owned[i]] = msg.sender;
+            forSale[owned[i]].price = price;
+            forSale[owned[i]].seller = msg.sender;
+            sellers[msg.sender]++;
 
             // don't want any double selling, so have to burn token to prevent this
             _burn(owned[i]);
@@ -174,10 +175,9 @@ contract Birdie is ERC721 {
      * take a token off the market
      * this can only be done if the token hasn't been sold yet
      */
-    function stopTokenSale(uint256 n, uint256 price) public {
-        require(n > 0, "You must take at least 1 token off the market");
-        require();
-    }
+    // function stopTokenSale(uint256 n, uint256 price) public {
+    //     require(n > 0, "You must take at least 1 token off the market");
+    // }
 
     ///////////////// STAKING METHODS /////////////////
     /*
