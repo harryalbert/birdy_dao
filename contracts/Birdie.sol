@@ -2,11 +2,10 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "hardhat/console.sol";
 
-contract Birdie is ERC721, ReentrancyGuard {
+contract Birdie is ERC721 {
     using Counters for Counters.Counter;
     Counters.Counter tokenCount;
 
@@ -19,12 +18,13 @@ contract Birdie is ERC721, ReentrancyGuard {
     mapping(uint256 => address) private stakedOwner; // owner of each staked coin
 
     mapping(address => uint256[]) private stakers; // BIRD stakers
-    Seller[] sellers;
 
-    struct Seller {
-        address adr; // address of buyer/seler
-        uint256 cost; // cost of token
-        uint256 amount; // amount buying/selling
+    mapping(uint256 => ForSale) private forSale; // token id => price, seller
+    mapping(address => uint256) private numSelling; // address => how many tokens are currently being sold
+
+    struct ForSale {
+        uint256 price;
+        address seller;
     }
 
     // only owner can call method
@@ -41,6 +41,13 @@ contract Birdie is ERC721, ReentrancyGuard {
     }
 
     ///////////////// VIEW METHODS /////////////////
+    /*
+     * returns current price of a token
+     */
+    function getTokenPrice() public view returns (uint256) {
+        return tokenPrice;
+    }
+
     /*
      * returns token count of msg.sender
      */
@@ -93,13 +100,25 @@ contract Birdie is ERC721, ReentrancyGuard {
     }
 
     /*
-     * returns current price of a token
+     * get tokens that user currenty has for sale
      */
-    function getTokenPrice() public view returns (uint256) {
-        return tokenPrice;
+    function getUserSelling() public view returns (uint256[] memory) {
+        uint256[] memory tokens = new uint256[](numSelling[msg.sender]);
+        uint256 numFound = 0;
+        for (uint256 i = 0; i < tokenCount.current(); i++) {
+            if (forSale[i].seller == msg.sender) {
+                tokens[numFound] = i;
+                numFound++;
+
+                if (numFound >= numSelling[msg.sender]) return tokens;
+            }
+        }
+
+        console.log("something went wrong");
+        return tokens;
     }
 
-    ///////////////// purchase methods /////////////////
+    ///////////////// PURCHASE METHODS /////////////////
 
     /*
      * mints and sells a token to a buyer
@@ -107,7 +126,7 @@ contract Birdie is ERC721, ReentrancyGuard {
      *      tokensToMint > 0
      * post: mints new token and transfers ownersip to msg.sender
      */
-    function buyTokens(uint256 numTokens) public payable nonReentrant {
+    function buyTokens(uint256 numTokens) public payable {
         require(
             (tokensToMint - numTokens) >= 0,
             "we can't mint that amount of tokens right now"
@@ -133,17 +152,43 @@ contract Birdie is ERC721, ReentrancyGuard {
     /*
      * put a token up for sale
      */
-    // function sellTokens(uint256 n, uint256 price) public nonReentrant {
-    //     require(n > 0, "You must sell at least 1 token");
-    //     require(balanceOf(msg.sender) >= n);
-    // }
+    function createTokenSale(uint256 n, uint256 price) public {
+        require(n > 0, "You must sell at least 1 token");
+        require(
+            balanceOf(msg.sender) >= n,
+            "You cannot sell more tokens than you own"
+        );
+        require(price > 0, "You cannot sell a token for free");
 
+        uint256[] memory owned = getUserTokens();
+        for (uint256 i = 0; i < n; i++) {
+            forSale[owned[i]] = price;
+            sellers[owned[i]] = msg.sender;
+
+            // don't want any double selling, so have to burn token to prevent this
+            _burn(owned[i]);
+        }
+    }
+
+    /*
+     * take a token off the market
+     * this can only be done if the token hasn't been sold yet
+     */
+    function stopTokenSale(uint256 n, uint256 price) public {
+        require(n > 0, "You must take at least 1 token off the market");
+        require();
+    }
+
+    ///////////////// STAKING METHODS /////////////////
     /*
      * Stake token in contract
      */
-    function stakeTokens(uint256 n) public nonReentrant {
+    function stakeTokens(uint256 n) public {
         require(n > 0, "You must stake at least 1 token");
-        require(balanceOf(msg.sender) >= n, "You can't stake more tokens than you own");
+        require(
+            balanceOf(msg.sender) >= n,
+            "You can't stake more tokens than you own"
+        );
 
         // convert n tokens to staking pool
         uint256[] memory owned = getUserTokens();
@@ -159,7 +204,7 @@ contract Birdie is ERC721, ReentrancyGuard {
     /*
      * unstake tokens from contract
      */
-    function unstakeTokens(uint256 n) public nonReentrant {
+    function unstakeTokens(uint256 n) public {
         require(n > 0, "You must unstake at least 1 token");
         require(
             n <= stakedBalance[msg.sender],

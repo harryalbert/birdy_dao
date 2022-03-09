@@ -11,6 +11,9 @@ describe("NFTMarket", async function () {
         const birdie = await Birdie.deploy();
         await birdie.deployed();
 
+
+        //////////////// BUYING ////////////////
+
         // get token price
         let tokenPrice = await birdie.getTokenPrice();
 
@@ -21,6 +24,9 @@ describe("NFTMarket", async function () {
         // get balance of purchaser
         let balance = await birdie.connect(addresses[1]).getUserBalance();
         expect(balance).to.equal(numBuying);
+
+
+        //////////////// STAKING ////////////////
 
         // stake tokens
         let numStaking = 3;
@@ -41,5 +47,35 @@ describe("NFTMarket", async function () {
 
         balance = await birdie.connect(addresses[1]).getUserStakedBalance();
         expect(balance).to.equal(numStaking - numUnstaking);
+        console.log(balance);
+    });
+
+    it("Should buy and sell tokens", async function () {
+        //get dummy addresses
+        const addresses = await ethers.getSigners();
+
+        // create and deploy birdie contract
+        const Birdie = await ethers.getContractFactory("Birdie");
+        const birdie = await Birdie.deploy();
+        await birdie.deployed();
+
+
+        //////////////// BUYING ////////////////
+
+        // get token price
+        let tokenPrice = await birdie.getTokenPrice();
+
+        //buy nft
+        let numBuying = 4;
+        await birdie.connect(addresses[1]).buyTokens(numBuying, { value: tokenPrice.mul(numBuying).toString() });
+
+        // get balance of purchaser
+        let balance = await birdie.connect(addresses[1]).getUserBalance();
+        expect(balance).to.equal(numBuying);
+
+
+        //////////////// SELLING ////////////////
+
+
     });
 });
