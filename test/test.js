@@ -49,7 +49,7 @@ describe("NFTMarket", async function () {
         expect(balance).to.equal(numStaking - numUnstaking);
     });
 
-    it("Should buy and sell tokens", async function () {
+    it("Should sell and buy tokens", async function () {
         //get dummy addresses
         const addresses = await ethers.getSigners();
 
@@ -77,18 +77,15 @@ describe("NFTMarket", async function () {
 
         // sell tokens
         let numSelling = 2;
-        await birdie.connect(addresses[1]).sellTokens(numSelling, 10000);
+        await birdie.connect(addresses[1]).sellTokens(numSelling, 90000);
 
         // check new balance
         let balance = await birdie.connect(addresses[1]).getUserBalance();
         expect(balance).to.equal(owned - numSelling);
 
-        await birdie.connect(addresses[1]).stopTokenSale(numSelling - 1);
+        await birdie.connect(addresses[1]).stopTokenSale(numSelling);
 
         balance = await birdie.connect(addresses[1]).getUserBalance();
-        expect(balance).to.equal(owned - 1);
-
-        let selling = await birdie.connect(addresses[1]).getUserSelling();
-        console.log(selling);
+        expect(balance).to.equal(owned);
     });
 });

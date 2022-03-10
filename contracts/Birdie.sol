@@ -39,14 +39,49 @@ contract Birdie is ERC721 {
 
         tokensToMint = 10;
         tokenPrice = 10 ether;
+        tokenCount.increment();
     }
 
     ///////////////// VIEW METHODS /////////////////
     /*
-     * returns current price of a token
+     * returns current price of cheapest token
      */
     function getTokenPrice() public view returns (uint256) {
         return tokenPrice;
+    }
+
+    /*
+     * returns current price of cheapest token
+     */
+    function getCheapestTokenPrice() public view returns (uint256) {
+        // get cheapest token for sale
+        uint256 min = 0;
+        for (uint256 i = 0; i < tokenCount.current(); i++) {
+            if (forSale[i].price == 0) continue;
+            if (min == 0 || forSale[i].price < min) min = forSale[i].price;
+        }
+
+        if (tokensToMint < 1 || min < tokenPrice) return min;
+        return tokenPrice;
+    }
+
+    /*
+     * returns index of the cheapest token
+     */
+    function getCheapestToken() public view returns (uint256) {
+        //get index of cheapest token for sale
+        uint256 min = 0;
+        uint256 minIndex = 0;
+        for (uint256 i = 0; i < tokenCount.current(); i++) {
+            if (forSale[i].price == 0) continue;
+            if (min == 0 || forSale[i].price < min) {
+                min = forSale[i].price;
+                minIndex = i;
+            }
+        }
+
+        if (tokensToMint < 1 || min < tokenPrice) return minIndex;
+        return 0;
     }
 
     /*
@@ -101,7 +136,7 @@ contract Birdie is ERC721 {
     }
 
     /*
-     * get tokens that user currenty has for sale
+     * get tokens that user currently has for sale
      */
     function getUserSelling() public view returns (ForSale[] memory) {
         ForSale[] memory tokens = new ForSale[](sellers[msg.sender]);
@@ -186,13 +221,18 @@ contract Birdie is ERC721 {
             "You cannot sell more tokens than you own"
         );
 
-        ForSale[] memory selling = getUserSelling();
-        for (uint256 i = 0; i < n; i++) {
-            _safeMint(msg.sender, selling[i].id);
+        uint256 numFound = 0;
+        for (uint256 i = 0; i < tokenCount.current(); i++) {
+            if (forSale[i].seller == msg.sender) {
+                _safeMint(msg.sender, forSale[i].id);
 
-            selling[i].id = 0;
-            selling[i].price = 0;
-            selling[i].seller = address(0);
+                forSale[i].id = 0;
+                forSale[i].price = 0;
+                forSale[i].seller = address(0);
+                
+                numFound++;
+                if (numFound >= sellers[msg.sender]) break;
+            }
         }
 
         sellers[msg.sender] -= n;
