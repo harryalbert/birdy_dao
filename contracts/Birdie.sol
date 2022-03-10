@@ -13,6 +13,12 @@ contract Birdie is ERC721 {
     uint256 tokenPrice;
     address payable owner;
 
+    struct ForSale {
+        uint256 id;
+        uint256 price;
+        address seller;
+    }
+
     //staking info
     mapping(address => uint256) private stakedBalance; // balance of each staker
     mapping(uint256 => address) private stakedOwner; // owner of each staked coin
@@ -21,11 +27,6 @@ contract Birdie is ERC721 {
 
     mapping(uint256 => ForSale) private forSale; // token id => price, seller
     mapping(address => uint256) private sellers; // address => how many tokens are currently being sold
-
-    struct ForSale {
-        uint256 price;
-        address seller;
-    }
 
     // only owner can call method
     modifier onlyOwner() {
@@ -162,22 +163,40 @@ contract Birdie is ERC721 {
 
         uint256[] memory owned = getUserTokens();
         for (uint256 i = 0; i < n; i++) {
+            forSale[owned[i]].id = owned[i];
             forSale[owned[i]].price = price;
             forSale[owned[i]].seller = msg.sender;
-            sellers[msg.sender]++;
 
             // don't want any double selling, so have to burn token to prevent this
             _burn(owned[i]);
         }
+
+        sellers[msg.sender] += n;
     }
 
     /*
      * take a token off the market
      * this can only be done if the token hasn't been sold yet
      */
-    // function stopTokenSale(uint256 n, uint256 price) public {
-    //     require(n > 0, "You must take at least 1 token off the market");
-    // }
+    function stopTokenSale(uint256 n) public {
+        require(n > 0, "You must take at least 1 token off the market");
+
+        require(
+            n <= sellers[msg.sender],
+            "You cannot sell more tokens than you own"
+        );
+
+        ForSale[] memory selling = getUserSelling();
+        for (uint256 i = 0; i < n; i++) {
+            _safeMint(msg.sender, selling[i].id);
+
+            selling[i].id = 0;
+            selling[i].price = 0;
+            selling[i].seller = address(0);
+        }
+
+        sellers[msg.sender] -= n;
+    }
 
     ///////////////// STAKING METHODS /////////////////
     /*

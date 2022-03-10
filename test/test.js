@@ -82,5 +82,13 @@ describe("NFTMarket", async function () {
         // check new balance
         let balance = await birdie.connect(addresses[1]).getUserBalance();
         expect(balance).to.equal(owned - numSelling);
+
+        await birdie.connect(addresses[1]).stopTokenSale(numSelling - 1);
+
+        balance = await birdie.connect(addresses[1]).getUserBalance();
+        expect(balance).to.equal(owned - 1);
+
+        let selling = await birdie.connect(addresses[1]).getUserSelling();
+        console.log(selling);
     });
 });

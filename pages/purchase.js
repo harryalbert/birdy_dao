@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
 import Web3Modal from 'web3modal';
 
-import { birdyAddress } from '../config';
+import { birdieAddress } from '../config';
 import Birdy from "../artifacts/contracts/Birdy.sol/Birdy.json";
 
 export default function Home() {
@@ -18,8 +18,8 @@ export default function Home() {
     const provider = new ethers.providers.Web3Provider(connection);
     const signer = provider.getSigner();
 
-    const birdyContract = new ethers.Contract(birdyAddress, Birdy.abi, signer);
-    const balance = await birdyContract.getUserBalance();
+    const birdieContract = new ethers.Contract(birdieAddress, Birdy.abi, signer);
+    const balance = await birdieContract.getUserBalance();
     setBalance(balance.toString());
   }
 
@@ -29,12 +29,12 @@ export default function Home() {
     const provider = new ethers.providers.Web3Provider(connection);
     const signer = provider.getSigner();
 
-    const birdyContract = new ethers.Contract(birdyAddress, Birdy.abi, signer);
+    const birdieContract = new ethers.Contract(birdieAddress, Birdy.abi, signer);
 
-    let price = await birdyContract.getTokenPrice();
+    let price = await birdieContract.getTokenPrice();
     console.log(price);
 
-    await birdyContract.buyToken(1, { value: price });
+    await birdieContract.buyToken(1, { value: price });
     console.log("bought token");
     loadBalance();
   }

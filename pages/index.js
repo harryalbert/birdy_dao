@@ -6,7 +6,7 @@ export default function Home() {
     <div className="bg-light">
       <div className="flex justify-between items-center drop-shadow bg-white p-2">
         <div className="flex flex-row items-center">
-          <Image src="/images/logo.svg" height={50} width={77} alt="birdy logo" />
+          <Image src="/images/logo.svg" height={50} width={77} alt="birdie logo" />
           <h1 className="title pl-3"> BirdyDAO </h1>
         </div>
         <div>
