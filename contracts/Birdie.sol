@@ -37,7 +37,7 @@ contract Birdie is ERC721 {
     constructor() ERC721("Birdie", "BRD") {
         owner = payable(msg.sender);
 
-        tokensToMint = 10;
+        tokensToMint = 1000;
         tokenPrice = 10 ether;
         tokenCount.increment();
     }
@@ -48,6 +48,76 @@ contract Birdie is ERC721 {
      */
     function getTokenPrice() public view returns (uint256) {
         return tokenPrice;
+    }
+
+    function getTokenPrices(uint256 n) public view returns (uint256[] memory) {
+        require(n < 1000, "that's too many tokens");
+
+        // array of lowest prices
+        uint256[] memory prices = new uint256[](n);
+
+        uint256 biggest = 0;
+        uint256 biggestIndex = 0;
+        for (uint256 i = 0; i < tokenCount.current(); i++) {
+            // check if token is for sale
+            ForSale memory sale = forSale[i];
+            if (sale.price == 0) continue;
+
+            // any empty spots in prices array
+            if (biggest == 0) {
+                prices[biggestIndex] = sale.price;
+                biggestIndex++;
+
+                // get smallest value when there are no more empty values
+                if (biggestIndex >= n) {
+                    biggestIndex = getBiggest(prices);
+                    biggest = prices[biggestIndex];
+                }
+            } else if (sale.price < biggest) {
+                prices[biggestIndex] = sale.price;
+
+                biggestIndex = getBiggest(prices);
+                biggest = prices[biggestIndex];
+            }
+        }
+
+        // fill in any zero values with minted tokens
+        uint256 mintsLeft = tokensToMint;
+        for (uint256 i = 0; i < prices.length; i++) {
+            if (mintsLeft <= 0) break;
+            if (prices[i] == 0) {
+                prices[i] = tokenPrice;
+                mintsLeft--;
+            }
+        }
+
+        // check that none of the sales are higher than
+        // the base token price (if any tokens are left to mint)
+        while (mintsLeft > 0) {
+            biggestIndex = getBiggest(prices);
+            biggest = prices[biggestIndex];
+
+            if (biggest > tokenPrice) {
+                prices[biggestIndex] = tokenPrice;
+                mintsLeft--;
+            } else break;
+        }
+
+        return prices;
+    }
+
+    /*
+     * get index of biggest value in array
+     */
+    function getBiggest(uint256[] memory arr) public pure returns (uint256) {
+        require(arr.length > 0, "input array cannot be empty");
+
+        uint256 maxIndex = 0;
+        for (uint256 i = 1; i < arr.length; i++) {
+            if (arr[i] > arr[maxIndex]) maxIndex = i;
+        }
+
+        return maxIndex;
     }
 
     /*
@@ -150,7 +220,8 @@ contract Birdie is ERC721 {
             }
         }
 
-        console.log("something went wrong");
+        //code should never get here
+        assert(false);
         return tokens;
     }
 
@@ -229,7 +300,7 @@ contract Birdie is ERC721 {
                 forSale[i].id = 0;
                 forSale[i].price = 0;
                 forSale[i].seller = address(0);
-                
+
                 numFound++;
                 if (numFound >= sellers[msg.sender]) break;
             }
