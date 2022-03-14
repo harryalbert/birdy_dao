@@ -21,7 +21,9 @@ describe("NFTMarket", async function () {
 
         //buy nft
         let numBuying = 4;
-        await birdie.connect(addresses[1]).buyTokens(numBuying, { value: tokenPrice.mul(numBuying).toString() });
+        for (let i = 0; i < 4; i++) {
+            await birdie.connect(addresses[1]).buyToken({ value: tokenPrice });
+        }
 
         // get balance of purchaser
         let balance = await birdie.connect(addresses[1]).getUserBalance();
@@ -66,9 +68,11 @@ describe("NFTMarket", async function () {
         // get token price
         let tokenPrice = await birdie.getTokenPrice();
 
-        //buy nft
+        //buy token
         let numBuying = 50;
-        await birdie.connect(addresses[1]).buyTokens(numBuying, { value: tokenPrice.mul(numBuying).toString() });
+        for (let i = 0; i < numBuying; i++) {
+            await birdie.connect(addresses[1]).buyToken({ value: tokenPrice });
+        }
 
         // get balance of purchaser
         let owned = await birdie.connect(addresses[1]).getUserBalance();
@@ -107,8 +111,11 @@ describe("NFTMarket", async function () {
         let tokenPrice = await birdie.getTokenPrice();
 
         //buy nft
+        //buy token
         let numBuying = 50;
-        await birdie.connect(addresses[1]).buyTokens(numBuying, { value: tokenPrice.mul(numBuying).toString() });
+        for (let i = 0; i < numBuying; i++) {
+            await birdie.connect(addresses[1]).buyToken({ value: tokenPrice });
+        }
 
         // get balance of purchaser
         let owned = await birdie.connect(addresses[1]).getUserBalance();
@@ -120,15 +127,6 @@ describe("NFTMarket", async function () {
         // // sell some tokens
         await birdie.connect(addresses[1]).sellTokens(3, Web3.utils.toWei('1', 'ether'));
         await birdie.connect(addresses[1]).sellTokens(2, Web3.utils.toWei('2.5', 'ether'));
-        await birdie.connect(addresses[1]).sellTokens(1, Web3.utils.toWei('1', 'ether'));
 
-        // // check that we get the correct token prices
-        let prices = await birdie.connect(addresses[1]).getTokenPrices(10);
-        let price = 0;
-        for (let i = 0; i < prices.length; i++) {
-            let ethPrice = Web3.utils.fromWei(prices[i].toString(), 'ether');
-            price += parseFloat(ethPrice);
-        }
-        expect(price).to.equal((4 * 1) + (2 * 2.5) + (4 * 10));
     });
 });
