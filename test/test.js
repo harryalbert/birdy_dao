@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const BigNumber = require("bignumber.js");
+const Web3 = require('web3');
 
 describe("NFTMarket", async function () {
     it("Should buy and stake tokens", async function () {
@@ -117,21 +118,17 @@ describe("NFTMarket", async function () {
         //////////////// SELLING AT VARIETY OF PRICES ////////////////
 
         // // sell some tokens
-        // await birdie.connect(addresses[1]).sellTokens(2, 85000);
-        // await birdie.connect(addresses[1]).sellTokens(8, 90000);
-        // await birdie.connect(addresses[1]).sellTokens(3, 80000);
-        // await birdie.connect(addresses[1]).sellTokens(4, 85000);
+        await birdie.connect(addresses[1]).sellTokens(3, Web3.utils.toWei('1', 'ether'));
+        await birdie.connect(addresses[1]).sellTokens(2, Web3.utils.toWei('2.5', 'ether'));
+        await birdie.connect(addresses[1]).sellTokens(1, Web3.utils.toWei('1', 'ether'));
 
-        // // check that we get the correct token price
-        // let prices = await birdie.connect(addresses[1]).getTokenPrices(10);
-        // let price = 0;
-        // for (let i = 0; i < prices.length; i++) price += prices[i].toNumber();
-        // expect(price).to.equal(85000 * 6 + 80000 * 3 + 90000);
-
-
-        // check that we get the correct token price
+        // // check that we get the correct token prices
         let prices = await birdie.connect(addresses[1]).getTokenPrices(10);
-        console.log(prices);
-        // expect(price).to.equal(tokenPrice.multiply(10));
+        let price = 0;
+        for (let i = 0; i < prices.length; i++) {
+            let ethPrice = Web3.utils.fromWei(prices[i].toString(), 'ether');
+            price += parseFloat(ethPrice);
+        }
+        expect(price).to.equal((4 * 1) + (2 * 2.5) + (4 * 10));
     });
 });
