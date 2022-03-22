@@ -5,96 +5,96 @@ const Web3 = require('web3');
 const provider = waffle.provider;
 
 describe("NFTMarket", async function () {
-    // it("Should buy and stake tokens", async function () {
-    //     //get dummy addresses
-    //     const addresses = await ethers.getSigners();
+    it("Should buy and stake tokens", async function () {
+        //get dummy addresses
+        const addresses = await ethers.getSigners();
 
-    //     // create and deploy birdie contract
-    //     const Birdie = await ethers.getContractFactory("Birdie");
-    //     const birdie = await Birdie.deploy();
-    //     await birdie.deployed();
-
-
-    //     //////////////// BUYING ////////////////
-
-    //     // get token price
-    //     let tokenPrice = await birdie.getCheapestTokenPrice();
-
-    //     //buy nft
-    //     let numBuying = 4;
-    //     for (let i = 0; i < 4; i++) {
-    //         await birdie.connect(addresses[1]).buyToken({ value: tokenPrice });
-    //     }
-
-    //     // get balance of purchaser
-    //     let balance = await birdie.connect(addresses[1]).getUserBalance();
-    //     expect(balance).to.equal(numBuying);
+        // create and deploy birdie contract
+        const Birdie = await ethers.getContractFactory("Birdie");
+        const birdie = await Birdie.deploy();
+        await birdie.deployed();
 
 
-    //     //////////////// STAKING ////////////////
+        //////////////// BUYING ////////////////
 
-    //     // stake tokens
-    //     let numStaking = 3;
-    //     await birdie.connect(addresses[1]).stakeTokens(numStaking);
+        // get token price
+        let tokenPrice = await birdie.getCheapestTokenPrice();
 
-    //     balance = await birdie.connect(addresses[1]).getUserBalance();
-    //     expect(balance).to.equal(numBuying - numStaking);
+        //buy nft
+        let numBuying = 4;
+        for (let i = 0; i < 4; i++) {
+            await birdie.connect(addresses[1]).buyToken({ value: tokenPrice });
+        }
 
-    //     balance = await birdie.connect(addresses[1]).getUserStakedBalance();
-    //     expect(balance).to.equal(numStaking);
-
-    //     // unstake tokens
-    //     let numUnstaking = 2;
-    //     await birdie.connect(addresses[1]).unstakeTokens(numUnstaking);
-
-    //     balance = await birdie.connect(addresses[1]).getUserBalance();
-    //     expect(balance).to.equal(numBuying - (numStaking - numUnstaking));
-
-    //     balance = await birdie.connect(addresses[1]).getUserStakedBalance();
-    //     expect(balance).to.equal(numStaking - numUnstaking);
-    // });
-
-    // it("Should sell and withdraw sale of tokens", async function () {
-    //     //get dummy addresses
-    //     const addresses = await ethers.getSigners();
-
-    //     // create and deploy birdie contract
-    //     const Birdie = await ethers.getContractFactory("Birdie");
-    //     const birdie = await Birdie.deploy();
-    //     await birdie.deployed();
+        // get balance of purchaser
+        let balance = await birdie.connect(addresses[1]).getUserBalance();
+        expect(balance).to.equal(numBuying);
 
 
-    //     //////////////// BUYING ////////////////
+        //////////////// STAKING ////////////////
 
-    //     // get token price
-    //     let tokenPrice = await birdie.getCheapestTokenPrice();
+        // stake tokens
+        let numStaking = 3;
+        await birdie.connect(addresses[1]).stakeTokens(numStaking);
 
-    //     //buy token
-    //     let numBuying = 50;
-    //     for (let i = 0; i < numBuying; i++) {
-    //         await birdie.connect(addresses[1]).buyToken({ value: tokenPrice });
-    //     }
+        balance = await birdie.connect(addresses[1]).getUserBalance();
+        expect(balance).to.equal(numBuying - numStaking);
 
-    //     // get balance of purchaser
-    //     let owned = await birdie.connect(addresses[1]).getUserBalance();
-    //     expect(owned).to.equal(numBuying);
+        balance = await birdie.connect(addresses[1]).getUserStakedBalance();
+        expect(balance).to.equal(numStaking);
+
+        // unstake tokens
+        let numUnstaking = 2;
+        await birdie.connect(addresses[1]).unstakeTokens(numUnstaking);
+
+        balance = await birdie.connect(addresses[1]).getUserBalance();
+        expect(balance).to.equal(numBuying - (numStaking - numUnstaking));
+
+        balance = await birdie.connect(addresses[1]).getUserStakedBalance();
+        expect(balance).to.equal(numStaking - numUnstaking);
+    });
+
+    it("Should sell and withdraw sale of tokens", async function () {
+        //get dummy addresses
+        const addresses = await ethers.getSigners();
+
+        // create and deploy birdie contract
+        const Birdie = await ethers.getContractFactory("Birdie");
+        const birdie = await Birdie.deploy();
+        await birdie.deployed();
 
 
-    //     //////////////// SELLING ////////////////
+        //////////////// BUYING ////////////////
 
-    //     // sell tokens
-    //     let numSelling = 2;
-    //     await birdie.connect(addresses[1]).sellTokens(numSelling, 90000);
+        // get token price
+        let tokenPrice = await birdie.getCheapestTokenPrice();
 
-    //     // check new balance
-    //     let balance = await birdie.connect(addresses[1]).getUserBalance();
-    //     expect(balance).to.equal(owned - numSelling);
+        //buy token
+        let numBuying = 20;
+        for (let i = 0; i < numBuying; i++) {
+            await birdie.connect(addresses[1]).buyToken({ value: tokenPrice });
+        }
 
-    //     // withdraw token sale
-    //     await birdie.connect(addresses[1]).stopTokenSale(numSelling);
-    //     balance = await birdie.connect(addresses[1]).getUserBalance();
-    //     expect(balance).to.equal(owned);
-    // });
+        // get balance of purchaser
+        let owned = await birdie.connect(addresses[1]).getUserBalance();
+        expect(owned).to.equal(numBuying);
+
+
+        //////////////// SELLING ////////////////
+
+        // sell tokens
+        let numSelling = 2;
+        await birdie.connect(addresses[1]).sellTokens(numSelling, 90000);
+
+        // check new balance
+        let balance = await birdie.connect(addresses[1]).getUserBalance();
+        expect(balance).to.equal(owned - numSelling);
+
+        // withdraw token sale
+        await birdie.connect(addresses[1]).stopTokenSale(numSelling);
+        balance = await birdie.connect(addresses[1]).getUserBalance();
+        expect(balance).to.equal(owned);
+    });
 
     it("Should buy tokens from other users", async function () {
         //get dummy addresses
