@@ -239,30 +239,56 @@ contract Birdie is ERC721 {
      * take a token off the market
      * this can only be done if the token hasn't been sold yet
      */
-    function stopTokenSale(uint256 n) public {
-        require(n > 0, "You must take at least 1 token off the market");
-
+    function stopTokenSale(uint256 id) public {
+        // seller must be currently selling at least one token
         require(
-            n <= sellers[msg.sender],
-            "You cannot sell more tokens than you own"
+            sellers[msg.sender] > 0,
+            "You must take at least 1 token off the market"
         );
 
-        uint256 numFound = 0;
-        for (uint256 i = 0; i < tokenCount.current(); i++) {
-            if (forSale[i].seller == msg.sender) {
-                _safeMint(msg.sender, forSale[i].id);
+        // check that seller owns token
+        ForSale memory token = forSale[id];
+        require(
+            token.seller == msg.sender,
+            "You cannot sell a token you do not own"
+        );
 
-                forSale[i].id = 0;
-                forSale[i].price = 0;
-                forSale[i].seller = address(0);
+        // mint token for seller
+        _safeMint(msg.sender, token.id);
 
-                numFound++;
-                if (numFound >= sellers[msg.sender]) break;
-            }
-        }
+        // taken token off the market
+        forSale[id].id = 0;
+        forSale[id].price = 0;
+        forSale[id].seller = address(0);
 
-        sellers[msg.sender] -= n;
+        // decrement number of tokens seller is selling
+        sellers[msg.sender] -= 1;
     }
+
+    // function stopTokenSale(uint256 n) public {
+    //     require(n > 0, "You must take at least 1 token off the market");
+
+    //     require(
+    //         n <= sellers[msg.sender],
+    //         "You cannot sell more tokens than you own"
+    //     );
+
+    //     uint256 numFound = 0;
+    //     for (uint256 i = 0; i < tokenCount.current(); i++) {
+    //         if (forSale[i].seller == msg.sender) {
+    //             _safeMint(msg.sender, forSale[i].id);
+
+    //             forSale[i].id = 0;
+    //             forSale[i].price = 0;
+    //             forSale[i].seller = address(0);
+
+    //             numFound++;
+    //             if (numFound >= sellers[msg.sender]) break;
+    //         }
+    //     }
+
+    //     sellers[msg.sender] -= n;
+    // }
 
     ///////////////// STAKING METHODS /////////////////
     /*

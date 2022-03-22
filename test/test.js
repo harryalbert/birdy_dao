@@ -2,8 +2,6 @@ const { expect } = require("chai");
 const { ethers, waffle } = require("hardhat");
 const Web3 = require('web3');
 
-const provider = waffle.provider;
-
 describe("NFTMarket", async function () {
     it("Should buy and stake tokens", async function () {
         //get dummy addresses
@@ -90,8 +88,12 @@ describe("NFTMarket", async function () {
         let balance = await birdie.connect(addresses[1]).getUserBalance();
         expect(balance).to.equal(owned - numSelling);
 
+        let selling = await birdie.connect(addresses[1]).getUserSelling();
+
         // withdraw token sale
-        await birdie.connect(addresses[1]).stopTokenSale(numSelling);
+        for (let i = 0; i < numSelling; i++) {
+            await birdie.connect(addresses[1]).stopTokenSale(selling[i].id.toString());
+        }
         balance = await birdie.connect(addresses[1]).getUserBalance();
         expect(balance).to.equal(owned);
     });
