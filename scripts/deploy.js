@@ -1,8 +1,8 @@
 const hre = require("hardhat");
 
 async function main() {
-	const Birdy = await hre.ethers.getContractFactory("Birdy");
-	const birdie = await Birdy.deploy();
+	const Birdie = await hre.ethers.getContractFactory("Birdie");
+	const birdie = await Birdie.deploy();
 	await birdie.deployed();
 	console.log("birdie deployed to:", birdie.address);
 }

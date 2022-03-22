@@ -37,7 +37,7 @@ contract Birdie is ERC721 {
     constructor() ERC721("Birdie", "BRD") {
         owner = payable(msg.sender);
 
-        tokensToMint = 1000;
+        tokensToMint = 30;
         tokenPrice = 10 ether;
         tokenCount.increment();
     }
@@ -61,14 +61,22 @@ contract Birdie is ERC721 {
             if (min == 0 || forSale[i].price < min) min = forSale[i].price;
         }
 
-        if (tokensToMint < 1 || min < tokenPrice) return min;
-        return tokenPrice;
+        if (tokensToMint == 0) {
+            // no more tokens to mint
+            return min;
+        } else if (min != 0 && min <= tokenPrice) {
+            // token for sale is cheaper than a minted token
+            return min;
+        } else {
+            // new minted token is cheapest
+            return tokenPrice;
+        }
     }
 
     /*
      * returns index of the cheapest token
      */
-    function getCheapestToken() public view returns (uint256) {
+    function getCheapestTokenForSale() public view returns (uint256) {
         //get index of cheapest token for sale
         uint256 min = 0;
         uint256 minIndex = 0;
@@ -80,7 +88,8 @@ contract Birdie is ERC721 {
             }
         }
 
-        if (tokensToMint < 1 || min < tokenPrice) return minIndex;
+        // if no more tokens to mint or token for sale is cheaper than minted token
+        if (tokensToMint < 1 || min <= tokenPrice) return minIndex;
         return 0;
     }
 
@@ -164,23 +173,42 @@ contract Birdie is ERC721 {
      * post: mints new token and transfers ownersip to msg.sender
      */
     function buyToken() public payable {
+        uint256 cheapestId = getCheapestTokenForSale();
+        ForSale memory cheapestToken = forSale[cheapestId];
+        uint256 price = (cheapestToken.id == 0)
+            ? tokenPrice
+            : cheapestToken.price;
+
         require(
-            tokensToMint > 0,
-            "we can't mint that amount of tokens right now"
-        );
-        require(
-            msg.value == tokenPrice,
+            msg.value == price,
             "You must send the correct amount to purchase a token"
         );
 
-        // will probably change later, but for now just giving all the money to the contract owner
-        owner.transfer(msg.value);
+        if (cheapestToken.id == 0) {
+            // new minted token is the cheapest token for sale
 
-        // mint and transfer tokens to owner
-        uint256 tokenId = tokenCount.current();
-        _safeMint(msg.sender, tokenId);
+            // will probably change later, but for now just giving all the money to the contract owner
+            owner.transfer(msg.value);
 
-        tokenCount.increment();
+            // mint and transfer tokens to owner
+            uint256 tokenId = tokenCount.current();
+            _safeMint(msg.sender, tokenId);
+
+            tokenCount.increment();
+            tokensToMint--;
+        } else {
+            // token for sale is the  cheapest option
+
+            // mint new token for user
+            payable(cheapestToken.seller).transfer(msg.value);
+            _safeMint(msg.sender, cheapestToken.id);
+
+            // take token off of for sale list
+            sellers[cheapestToken.seller] -= 1;
+            forSale[cheapestId].id = 0;
+            forSale[cheapestId].price = 0;
+            forSale[cheapestId].seller = address(0);
+        }
     }
 
     /*
@@ -188,11 +216,11 @@ contract Birdie is ERC721 {
      */
     function sellTokens(uint256 n, uint256 price) public {
         require(n > 0, "You must sell at least 1 token");
+        require(price > 0, "You cannot sell a token for free");
         require(
             balanceOf(msg.sender) >= n,
             "You cannot sell more tokens than you own"
         );
-        require(price > 0, "You cannot sell a token for free");
 
         uint256[] memory owned = getUserTokens();
         for (uint256 i = 0; i < n; i++) {
