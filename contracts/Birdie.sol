@@ -23,8 +23,6 @@ contract Birdie is ERC721 {
     mapping(address => uint256) private stakedBalance; // balance of each staker
     mapping(uint256 => address) private stakedOwner; // owner of each staked coin
 
-    mapping(address => uint256[]) private stakers; // BIRD stakers
-
     mapping(uint256 => ForSale) private forSale; // token id => price, seller
     mapping(address => uint256) private sellers; // address => how many tokens are currently being sold
 
@@ -81,7 +79,7 @@ contract Birdie is ERC721 {
         uint256 min = 0;
         uint256 minIndex = 0;
         for (uint256 i = 0; i < tokenCount.current(); i++) {
-            if (forSale[i].price == 0) continue;
+            if (forSale[i].price <= 0) continue;
             if (min == 0 || forSale[i].price < min) {
                 min = forSale[i].price;
                 minIndex = i;
@@ -114,12 +112,17 @@ contract Birdie is ERC721 {
         uint256 balance = balanceOf(msg.sender);
         uint256[] memory owned = new uint256[](balance);
 
-        uint256 cIndex = 0;
+        if (balance <= 0) return owned; // user has no tokens
 
+        uint256 cIndex = 0;
         for (uint256 i = 0; i < tokenCount.current(); i++) {
+            //user owns current token
             if (_exists(i) && ownerOf(i) == msg.sender) {
                 owned[cIndex] = i;
                 cIndex++;
+
+                // got all of user's tokens
+                if (cIndex >= balance) break;
             }
         }
 
@@ -133,11 +136,16 @@ contract Birdie is ERC721 {
         uint256 balance = getUserStakedBalance();
         uint256[] memory owned = new uint256[](balance);
 
+        if (balance <= 0) return owned; // user has no tokens staked
+
         uint256 cIndex = 0;
         for (uint256 i = 0; i < tokenCount.current(); i++) {
             if (stakedOwner[i] == msg.sender) {
                 owned[cIndex] = i;
                 cIndex++;
+
+                // got all of user's staked tokens
+                if (cIndex >= balance) break;
             }
         }
 
@@ -148,19 +156,22 @@ contract Birdie is ERC721 {
      * get tokens that user currently has for sale
      */
     function getUserSelling() public view returns (ForSale[] memory) {
-        ForSale[] memory tokens = new ForSale[](sellers[msg.sender]);
+        uint256 sellingBalance = sellers[msg.sender];
+        ForSale[] memory tokens = new ForSale[](sellingBalance);
+
+        if (sellingBalance <= 0) return tokens; // user has no tokens for sale
+
         uint256 numFound = 0;
         for (uint256 i = 0; i < tokenCount.current(); i++) {
             if (forSale[i].seller == msg.sender) {
                 tokens[numFound] = forSale[i];
                 numFound++;
 
-                if (numFound >= sellers[msg.sender]) return tokens;
+                // found all tokens for sale
+                if (numFound >= sellingBalance) break;
             }
         }
 
-        //code should never get here
-        assert(false);
         return tokens;
     }
 
@@ -173,11 +184,17 @@ contract Birdie is ERC721 {
      * post: mints new token and transfers ownersip to msg.sender
      */
     function buyToken() public payable {
+        // get cheapest token to purchase
         uint256 cheapestId = getCheapestTokenForSale();
         ForSale memory cheapestToken = forSale[cheapestId];
-        uint256 price = (cheapestToken.id == 0)
-            ? tokenPrice
-            : cheapestToken.price;
+
+        // get price of token
+        uint256 price;
+        if (cheapestToken.id == 0) {
+            require(tokensToMint > 0, "There are no more tokens for sale");
+
+            price = tokenPrice;
+        } else price = cheapestToken.price;
 
         require(
             msg.value == price,
@@ -185,23 +202,19 @@ contract Birdie is ERC721 {
         );
 
         if (cheapestToken.id == 0) {
-            // new minted token is the cheapest token for sale
-
-            // will probably change later, but for now just giving all the money to the contract owner
-            owner.transfer(msg.value);
-
             // mint and transfer tokens to owner
             uint256 tokenId = tokenCount.current();
             _safeMint(msg.sender, tokenId);
 
             tokenCount.increment();
             tokensToMint--;
-        } else {
-            // token for sale is the  cheapest option
 
+            // will probably change later, but for now just giving all the money to the contract owner
+            owner.transfer(msg.value);
+        } else {
             // mint new token for user
-            payable(cheapestToken.seller).transfer(msg.value);
             _safeMint(msg.sender, cheapestToken.id);
+            payable(cheapestToken.seller).transfer(msg.value);
 
             // take token off of for sale list
             sellers[cheapestToken.seller] -= 1;
@@ -224,14 +237,18 @@ contract Birdie is ERC721 {
 
         uint256[] memory owned = getUserTokens();
         for (uint256 i = 0; i < n; i++) {
-            forSale[owned[i]].id = owned[i];
-            forSale[owned[i]].price = price;
-            forSale[owned[i]].seller = msg.sender;
+            uint256 id = owned[i];
+
+            // put token up for sale
+            forSale[id].id = id;
+            forSale[id].price = price;
+            forSale[id].seller = msg.sender;
 
             // don't want any double selling, so have to burn token to prevent this
-            _burn(owned[i]);
+            _burn(id);
         }
 
+        // increment how many tokens msg.sender is selling
         sellers[msg.sender] += n;
     }
 
@@ -246,10 +263,10 @@ contract Birdie is ERC721 {
             "You must take at least 1 token off the market"
         );
 
-        // check that seller owns token
+        // check that seller owns token (and token exists)
         ForSale memory token = forSale[id];
         require(
-            token.seller == msg.sender,
+            token.seller == msg.sender && token.seller != address(0),
             "You cannot sell a token you do not own"
         );
 
@@ -261,34 +278,9 @@ contract Birdie is ERC721 {
         forSale[id].price = 0;
         forSale[id].seller = address(0);
 
-        // decrement number of tokens seller is selling
+        // decrement number of tokens msg.sender is selling
         sellers[msg.sender] -= 1;
     }
-
-    // function stopTokenSale(uint256 n) public {
-    //     require(n > 0, "You must take at least 1 token off the market");
-
-    //     require(
-    //         n <= sellers[msg.sender],
-    //         "You cannot sell more tokens than you own"
-    //     );
-
-    //     uint256 numFound = 0;
-    //     for (uint256 i = 0; i < tokenCount.current(); i++) {
-    //         if (forSale[i].seller == msg.sender) {
-    //             _safeMint(msg.sender, forSale[i].id);
-
-    //             forSale[i].id = 0;
-    //             forSale[i].price = 0;
-    //             forSale[i].seller = address(0);
-
-    //             numFound++;
-    //             if (numFound >= sellers[msg.sender]) break;
-    //         }
-    //     }
-
-    //     sellers[msg.sender] -= n;
-    // }
 
     ///////////////// STAKING METHODS /////////////////
     /*
@@ -325,6 +317,7 @@ contract Birdie is ERC721 {
         // remint n tokens from staking pool
         uint256 minted = 0;
         for (uint256 i = 0; i < tokenCount.current(); i++) {
+            // user owns token
             if (stakedOwner[i] == msg.sender) {
                 _safeMint(msg.sender, i);
                 stakedOwner[i] = address(0);
