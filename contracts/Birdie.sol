@@ -7,12 +7,13 @@ import "hardhat/console.sol";
 
 contract Birdie is ERC721 {
     using Counters for Counters.Counter;
-    Counters.Counter tokenCount;
+    Counters.Counter tokenCount; // # of tokens that have been minted
 
-    uint256 tokensToMint;
-    uint256 tokenPrice;
-    address payable owner;
+    uint256 tokensToMint; // tokens left to mint
+    uint256 tokenPrice; // price of a new (minted) token
+    address payable owner; // creator of contract (Harry Albert)
 
+    // token for sale
     struct ForSale {
         uint256 id;
         uint256 price;
