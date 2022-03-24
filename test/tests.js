@@ -5,7 +5,7 @@ const Web3 = require('web3');
 // await birdie.connect(addresses[1]).
 // balance = await birdie.provider.getBalance(addresses[1].address);
 describe("better tests", async function () {
-	it("single actor buys tokens", async function () {
+	it("buys tokens from one account", async function () {
 		const [addresses, birdie] = await setup();
 
 		// get price of token
@@ -44,7 +44,36 @@ describe("better tests", async function () {
 
 			// should never get here
 			console.log("bought more tokens than exist");
-			expect(true).to.equal(false);
+		} catch (e) { }
+	});
+
+	it("buys tokens from multipe accounts", async function () {
+		const [addresses, birdie] = await setup();
+
+		let price = await birdie.connect(addresses[1]).getCheapestTokenPrice();
+		let toMint = await birdie.connect(addresses[1]).getTokensLeftToMint();
+
+		// buy tokens from 3 account
+		for (let i = 0; i < 10; i++) {
+			await birdie.connect(addresses[1]).buyToken({ value: price });
+			await birdie.connect(addresses[2]).buyToken({ value: price });
+			await birdie.connect(addresses[3]).buyToken({ value: price });
+		}
+
+		for (let i = 1; i <= 3; i++) {
+			// check user balance and owned tokens
+			let balance = await birdie.connect(addresses[i]).getUserBalance();
+			let tokens = await birdie.connect(addresses[i]).getUserTokens();
+
+			expect(balance).to.equal(10);
+			expect(tokens.length).to.equal(balance);
+		}
+
+		try {
+			await birdie.connect(addresses[2]).buyToken({ value: price });
+
+			// should never get here
+			console.log("bought more tokens than exist");
 		} catch (e) { }
 	});
 });
