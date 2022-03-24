@@ -43,6 +43,13 @@ contract Birdie is ERC721 {
 
     ///////////////// VIEW METHODS /////////////////
     /*
+     * returns tokens left to mint
+     */
+    function getTokensLeftToMint() public view returns (uint256) {
+        return tokensToMint;
+    }
+
+    /*
      * returns current price of cheapest token
      */
     function getTokenPrice() public view returns (uint256) {
