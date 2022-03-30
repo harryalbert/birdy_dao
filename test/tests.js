@@ -47,34 +47,51 @@ describe("better tests", async function () {
 		} catch (e) { }
 	});
 
-	it("buys tokens from multipe accounts", async function () {
+	it("buys tokens using multipe accounts", async function () {
 		const [addresses, birdie] = await setup();
 
 		let price = await birdie.connect(addresses[1]).getCheapestTokenPrice();
-		let toMint = await birdie.connect(addresses[1]).getTokensLeftToMint();
 
 		// buy tokens from 3 account
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < 7; i++) {
 			await birdie.connect(addresses[1]).buyToken({ value: price });
 			await birdie.connect(addresses[2]).buyToken({ value: price });
 			await birdie.connect(addresses[3]).buyToken({ value: price });
+			await birdie.connect(addresses[4]).buyToken({ value: price });
 		}
 
+		// buy more tokens for last account
+		await birdie.connect(addresses[4]).buyToken({ value: price });
+		await birdie.connect(addresses[4]).buyToken({ value: price });
+
+		// check balance of each account
 		for (let i = 1; i <= 3; i++) {
 			// check user balance and owned tokens
 			let balance = await birdie.connect(addresses[i]).getUserBalance();
 			let tokens = await birdie.connect(addresses[i]).getUserTokens();
 
-			expect(balance).to.equal(10);
+			expect(balance).to.equal(7);
 			expect(tokens.length).to.equal(balance);
 		}
 
-		try {
-			await birdie.connect(addresses[2]).buyToken({ value: price });
+		// check balance of last account
+		let balance = await birdie.connect(addresses[4]).getUserBalance();
+		let tokens = await birdie.connect(addresses[4]).getUserTokens();
 
-			// should never get here
-			console.log("bought more tokens than exist");
-		} catch (e) { }
+		expect(balance).to.equal(9);
+		expect(tokens.length).to.equal(balance);
+	});
+
+	it("sells tokens", async function () {
+		const [addresses, birdie] = await setup();
+
+		// buy ten tokens
+		let price = await birdie.connect(addresses[1]).getCheapestTokenPrice();
+		for (let i = 0; i < 10; i++) {
+			await birdie.connect(addresses[1]).buyToken({ value: price });
+		}
+
+		
 	});
 });
 
