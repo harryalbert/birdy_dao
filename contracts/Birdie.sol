@@ -221,6 +221,7 @@ contract Birdie is ERC721 {
             owner.transfer(msg.value);
         } else {
             // mint new token for user
+            console.log(msg.value);
             _safeMint(msg.sender, cheapestToken.id);
             payable(cheapestToken.seller).transfer(msg.value);
 
