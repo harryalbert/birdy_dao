@@ -102,8 +102,15 @@ contract Birdie is ERC721 {
     /*
      * returns token count of msg.sender
      */
-    function getUserBalance() public view returns (uint256) {
+    function getMyBalance() public view returns (uint256) {
         return balanceOf(msg.sender);
+    }
+
+    /*
+     * returns token count of user
+     */
+    function getUserBalance(address user) public view returns (uint256) {
+        return balanceOf(user);
     }
 
     /*
@@ -221,7 +228,6 @@ contract Birdie is ERC721 {
             owner.transfer(msg.value);
         } else {
             // mint new token for user
-            console.log(msg.value);
             _safeMint(msg.sender, cheapestToken.id);
             payable(cheapestToken.seller).transfer(msg.value);
 

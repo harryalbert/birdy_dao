@@ -18,7 +18,7 @@ describe("better tests", async function () {
 
 		// purchase 1 token
 		await birdie.connect(addresses[1]).buyToken({ value: price });
-		let balance = await birdie.connect(addresses[1]).getUserBalance();
+		let balance = await birdie.connect(addresses[1]).getMyBalance();
 		expect(balance).to.equal(1);
 
 		let tokensLeft = await birdie.connect(addresses[1]).getTokensLeftToMint();
@@ -28,7 +28,7 @@ describe("better tests", async function () {
 		for (let i = 0; i < tokensLeft; i++) {
 			await birdie.connect(addresses[1]).buyToken({ value: price });
 		}
-		balance = await birdie.connect(addresses[1]).getUserBalance();
+		balance = await birdie.connect(addresses[1]).getMyBalance();
 		expect(balance).to.equal(toMint);
 
 		tokensLeft = await birdie.connect(addresses[1]).getTokensLeftToMint();
@@ -67,7 +67,7 @@ describe("better tests", async function () {
 		// check balance of each account
 		for (let i = 1; i <= 3; i++) {
 			// check user balance and owned tokens
-			let balance = await birdie.connect(addresses[i]).getUserBalance();
+			let balance = await birdie.connect(addresses[i]).getMyBalance();
 			let tokens = await birdie.connect(addresses[i]).getUserTokens();
 
 			expect(balance).to.equal(7);
@@ -75,7 +75,7 @@ describe("better tests", async function () {
 		}
 
 		// check balance of last account
-		let balance = await birdie.connect(addresses[4]).getUserBalance();
+		let balance = await birdie.connect(addresses[4]).getMyBalance();
 		let tokens = await birdie.connect(addresses[4]).getUserTokens();
 
 		expect(balance).to.equal(9);
@@ -87,68 +87,75 @@ describe("better tests", async function () {
 
 		let a = addresses[2];
 		let b = addresses[3];
+		let c = addresses[4]; // used to call view functions
 
 		// buy five tokens
-		let price = await birdie.connect(addresses[1]).getCheapestTokenPrice();
+		let price = await birdie.connect(c).getCheapestTokenPrice();
 		for (let i = 0; i < 6; i++) {
-			await birdie.connect(addresses[1]).buyToken({ value: price });
-			await birdie.connect(addresses[2]).buyToken({ value: price });
+			await birdie.connect(a).buyToken({ value: price });
+			await birdie.connect(b).buyToken({ value: price });
 		}
-
-		let balanceOne = await birdie.provider.getBalance(addresses[1].address);
-		let balanceTwo = await birdie.provider.getBalance(addresses[2].address);
-		console.log(balanceOne);
-		console.log(balanceTwo);
 
 		// put a few tokens up for sale
 		let basePrice = Web3.utils.toWei('10', 'ether');
 		let lowPrice = Web3.utils.toWei('2', 'ether');
 		let mediumPrice = Web3.utils.toWei('6', 'ether');
 		let highPrice = Web3.utils.toWei('12', 'ether');
-		await birdie.connect(addresses[1]).sellTokens(2, lowPrice);
-		await birdie.connect(addresses[1]).sellTokens(1, mediumPrice);
-		await birdie.connect(addresses[1]).sellTokens(2, highPrice);
+		await birdie.connect(a).sellTokens(2, lowPrice);
+		await birdie.connect(a).sellTokens(1, mediumPrice);
+		await birdie.connect(a).sellTokens(2, highPrice);
 
-		balanceOne = await birdie.provider.getBalance(addresses[1].address);
-		balanceTwo = await birdie.provider.getBalance(addresses[2].address);
-		console.log(balanceOne);
-		console.log(balanceTwo);
-
-		price = await birdie.connect(addresses[1]).getCheapestTokenPrice();
+		price = await birdie.connect(c).getCheapestTokenPrice();
 		expect(price).to.equal(lowPrice);
 
-		let balance = await birdie.connect(addresses[1]).getUserBalance();
+		let balance = await birdie.connect(c).getUserBalance(a.address);
 		expect(balance).to.equal(1);
 
-
 		// buy cheap tokens
-		await birdie.connect(addresses[2]).buyToken({ value: price });
-		balance = await birdie.connect(addresses[2]).getUserBalance();
+		await birdie.connect(b).buyToken({ value: price });
+		balance = await birdie.connect(c).getUserBalance(b.address);
 		expect(balance).to.equal(7);
 
-		price = await birdie.connect(addresses[1]).getCheapestTokenPrice();
+		price = await birdie.connect(c).getCheapestTokenPrice();
 		expect(price).to.equal(lowPrice);
-		await birdie.connect(addresses[2]).buyToken({ value: price });
+		await birdie.connect(b).buyToken({ value: price });
 
 		// buy medium tokens
-		price = await birdie.connect(addresses[1]).getCheapestTokenPrice();
+		price = await birdie.connect(c).getCheapestTokenPrice();
 		expect(price).to.equal(mediumPrice);
-		await birdie.connect(addresses[2]).buyToken({ value: price });
+		await birdie.connect(b).buyToken({ value: price });
 
-		balance = await birdie.connect(addresses[2]).getUserBalance();
+		balance = await birdie.connect(c).getUserBalance(b.address);
 		expect(balance).to.equal(9)
 
 		// check remaining price
-		price = await birdie.connect(addresses[1]).getCheapestTokenPrice();
+		price = await birdie.connect(c).getCheapestTokenPrice();
 		expect(price).to.equal(basePrice);
-		await birdie.connect(addresses[2]).buyToken({ value: price });
-
 
 		// check eth balances
-		balanceOne = await birdie.provider.getBalance(addresses[1].address);
-		balanceTwo = await birdie.provider.getBalance(addresses[2].address);
-		console.log(balanceOne);
-		console.log(balanceTwo);
+		let balanceOne = await birdie.provider.getBalance(a.address);
+		let balanceTwo = await birdie.provider.getBalance(b.address);
+		expect(balanceOne).to.be.above(balanceTwo);
+
+		// buy final minted tokens
+		let left = await birdie.connect(c).getTokensLeftToMint();
+		for (let i = 0; i < left; i++) {
+			await birdie.connect(c).buyToken({value: basePrice});
+		}
+
+		// buy most expensive tokens
+		price = await birdie.connect(c).getCheapestTokenPrice();
+		expect(price).to.equal(highPrice);
+		for (let i = 0; i < 2; i++) {
+			await birdie.connect(b).buyToken({value: price});
+		}
+
+		balance = await birdie.connect(c).getUserBalance(b.address);
+		expect(balance).to.equal(11);
+
+		// check price when no tokens are available
+		price = await birdie.connect(c).getCheapestTokenPrice();
+		expect(price).to.equal(0);
 	});
 });
 
